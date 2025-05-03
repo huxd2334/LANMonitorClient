@@ -1,0 +1,56 @@
+D:\UNIVERSITY\DISCRETE MATHESMATICS\Programming\PTTKGT\dacn1_ha_cb-client\dacn1_ha_cb-client\RemoteAdministrationClient\RemoteClient\bin\Debug\Internet.exe.config
+D:\UNIVERSITY\DISCRETE MATHESMATICS\Programming\PTTKGT\dacn1_ha_cb-client\dacn1_ha_cb-client\RemoteAdministrationClient\RemoteClient\bin\Debug\Internet.exe
+D:\UNIVERSITY\DISCRETE MATHESMATICS\Programming\PTTKGT\dacn1_ha_cb-client\dacn1_ha_cb-client\RemoteAdministrationClient\RemoteClient\bin\Debug\Internet.pdb
+D:\UNIVERSITY\DISCRETE MATHESMATICS\Programming\PTTKGT\dacn1_ha_cb-client\dacn1_ha_cb-client\RemoteAdministrationClient\RemoteClient\bin\Debug\AForge.dll
+D:\UNIVERSITY\DISCRETE MATHESMATICS\Programming\PTTKGT\dacn1_ha_cb-client\dacn1_ha_cb-client\RemoteAdministrationClient\RemoteClient\bin\Debug\AForge.Video.DirectShow.dll
+D:\UNIVERSITY\DISCRETE MATHESMATICS\Programming\PTTKGT\dacn1_ha_cb-client\dacn1_ha_cb-client\RemoteAdministrationClient\RemoteClient\bin\Debug\AForge.Video.dll
+D:\UNIVERSITY\DISCRETE MATHESMATICS\Programming\PTTKGT\dacn1_ha_cb-client\dacn1_ha_cb-client\RemoteAdministrationClient\RemoteClient\bin\Debug\EntityFramework.dll
+D:\UNIVERSITY\DISCRETE MATHESMATICS\Programming\PTTKGT\dacn1_ha_cb-client\dacn1_ha_cb-client\RemoteAdministrationClient\RemoteClient\bin\Debug\EntityFramework.SqlServer.dll
+D:\UNIVERSITY\DISCRETE MATHESMATICS\Programming\PTTKGT\dacn1_ha_cb-client\dacn1_ha_cb-client\RemoteAdministrationClient\RemoteClient\bin\Debug\KeystrokeAPI.dll
+D:\UNIVERSITY\DISCRETE MATHESMATICS\Programming\PTTKGT\dacn1_ha_cb-client\dacn1_ha_cb-client\RemoteAdministrationClient\RemoteClient\bin\Debug\LibUsbDotNet.dll
+D:\UNIVERSITY\DISCRETE MATHESMATICS\Programming\PTTKGT\dacn1_ha_cb-client\dacn1_ha_cb-client\RemoteAdministrationClient\RemoteClient\bin\Debug\NAudio.dll
+D:\UNIVERSITY\DISCRETE MATHESMATICS\Programming\PTTKGT\dacn1_ha_cb-client\dacn1_ha_cb-client\RemoteAdministrationClient\RemoteClient\bin\Debug\System.Data.SQLite.dll
+D:\UNIVERSITY\DISCRETE MATHESMATICS\Programming\PTTKGT\dacn1_ha_cb-client\dacn1_ha_cb-client\RemoteAdministrationClient\RemoteClient\bin\Debug\System.Data.SQLite.EF6.dll
+D:\UNIVERSITY\DISCRETE MATHESMATICS\Programming\PTTKGT\dacn1_ha_cb-client\dacn1_ha_cb-client\RemoteAdministrationClient\RemoteClient\bin\Debug\System.Data.SQLite.Linq.dll
+D:\UNIVERSITY\DISCRETE MATHESMATICS\Programming\PTTKGT\dacn1_ha_cb-client\dacn1_ha_cb-client\RemoteAdministrationClient\RemoteClient\bin\Debug\AForge.xml
+D:\UNIVERSITY\DISCRETE MATHESMATICS\Programming\PTTKGT\dacn1_ha_cb-client\dacn1_ha_cb-client\RemoteAdministrationClient\RemoteClient\bin\Debug\AForge.Video.xml
+D:\UNIVERSITY\DISCRETE MATHESMATICS\Programming\PTTKGT\dacn1_ha_cb-client\dacn1_ha_cb-client\RemoteAdministrationClient\RemoteClient\bin\Debug\AForge.Video.DirectShow.xml
+D:\UNIVERSITY\DISCRETE MATHESMATICS\Programming\PTTKGT\dacn1_ha_cb-client\dacn1_ha_cb-client\RemoteAdministrationClient\RemoteClient\bin\Debug\EntityFramework.xml
+D:\UNIVERSITY\DISCRETE MATHESMATICS\Programming\PTTKGT\dacn1_ha_cb-client\dacn1_ha_cb-client\RemoteAdministrationClient\RemoteClient\bin\Debug\EntityFramework.SqlServer.xml
+D:\UNIVERSITY\DISCRETE MATHESMATICS\Programming\PTTKGT\dacn1_ha_cb-client\dacn1_ha_cb-client\RemoteAdministrationClient\RemoteClient\bin\Debug\NAudio.xml
+D:\UNIVERSITY\DISCRETE MATHESMATICS\Programming\PTTKGT\dacn1_ha_cb-client\dacn1_ha_cb-client\RemoteAdministrationClient\RemoteClient\bin\Debug\System.Data.SQLite.xml
+D:\UNIVERSITY\DISCRETE MATHESMATICS\Programming\PTTKGT\dacn1_ha_cb-client\dacn1_ha_cb-client\RemoteAdministrationClient\RemoteClient\obj\Debug\RemoteClient.csproj.AssemblyReference.cache
+D:\UNIVERSITY\DISCRETE MATHESMATICS\Programming\PTTKGT\dacn1_ha_cb-client\dacn1_ha_cb-client\RemoteAdministrationClient\RemoteClient\obj\Debug\RemoteClient.ChatForm.resources
+D:\UNIVERSITY\DISCRETE MATHESMATICS\Programming\PTTKGT\dacn1_ha_cb-client\dacn1_ha_cb-client\RemoteAdministrationClient\RemoteClient\obj\Debug\RemoteClient.csproj.GenerateResource.cache
+D:\UNIVERSITY\DISCRETE MATHESMATICS\Programming\PTTKGT\dacn1_ha_cb-client\dacn1_ha_cb-client\RemoteAdministrationClient\RemoteClient\obj\Debug\RemoteClient.csproj.CoreCompileInputs.cache
+D:\UNIVERSITY\DISCRETE MATHESMATICS\Programming\PTTKGT\dacn1_ha_cb-client\dacn1_ha_cb-client\RemoteAdministrationClient\RemoteClient\obj\Debug\RemoteCl.989A280E.Up2Date
+D:\UNIVERSITY\DISCRETE MATHESMATICS\Programming\PTTKGT\dacn1_ha_cb-client\dacn1_ha_cb-client\RemoteAdministrationClient\RemoteClient\obj\Debug\Internet.exe
+D:\UNIVERSITY\DISCRETE MATHESMATICS\Programming\PTTKGT\dacn1_ha_cb-client\dacn1_ha_cb-client\RemoteAdministrationClient\RemoteClient\obj\Debug\Internet.pdb
+D:\UNIVERSITY\DISCRETE_MATHESMATICS\Programming\PTTKGT\dacn1_ha_cb-client\dacn1_ha_cb-client\RemoteAdministrationClient\RemoteClient\bin\Debug\Internet.exe.config
+D:\UNIVERSITY\DISCRETE_MATHESMATICS\Programming\PTTKGT\dacn1_ha_cb-client\dacn1_ha_cb-client\RemoteAdministrationClient\RemoteClient\bin\Debug\Internet.exe
+D:\UNIVERSITY\DISCRETE_MATHESMATICS\Programming\PTTKGT\dacn1_ha_cb-client\dacn1_ha_cb-client\RemoteAdministrationClient\RemoteClient\bin\Debug\Internet.pdb
+D:\UNIVERSITY\DISCRETE_MATHESMATICS\Programming\PTTKGT\dacn1_ha_cb-client\dacn1_ha_cb-client\RemoteAdministrationClient\RemoteClient\bin\Debug\AForge.dll
+D:\UNIVERSITY\DISCRETE_MATHESMATICS\Programming\PTTKGT\dacn1_ha_cb-client\dacn1_ha_cb-client\RemoteAdministrationClient\RemoteClient\bin\Debug\AForge.Video.DirectShow.dll
+D:\UNIVERSITY\DISCRETE_MATHESMATICS\Programming\PTTKGT\dacn1_ha_cb-client\dacn1_ha_cb-client\RemoteAdministrationClient\RemoteClient\bin\Debug\AForge.Video.dll
+D:\UNIVERSITY\DISCRETE_MATHESMATICS\Programming\PTTKGT\dacn1_ha_cb-client\dacn1_ha_cb-client\RemoteAdministrationClient\RemoteClient\bin\Debug\EntityFramework.dll
+D:\UNIVERSITY\DISCRETE_MATHESMATICS\Programming\PTTKGT\dacn1_ha_cb-client\dacn1_ha_cb-client\RemoteAdministrationClient\RemoteClient\bin\Debug\EntityFramework.SqlServer.dll
+D:\UNIVERSITY\DISCRETE_MATHESMATICS\Programming\PTTKGT\dacn1_ha_cb-client\dacn1_ha_cb-client\RemoteAdministrationClient\RemoteClient\bin\Debug\KeystrokeAPI.dll
+D:\UNIVERSITY\DISCRETE_MATHESMATICS\Programming\PTTKGT\dacn1_ha_cb-client\dacn1_ha_cb-client\RemoteAdministrationClient\RemoteClient\bin\Debug\LibUsbDotNet.dll
+D:\UNIVERSITY\DISCRETE_MATHESMATICS\Programming\PTTKGT\dacn1_ha_cb-client\dacn1_ha_cb-client\RemoteAdministrationClient\RemoteClient\bin\Debug\NAudio.dll
+D:\UNIVERSITY\DISCRETE_MATHESMATICS\Programming\PTTKGT\dacn1_ha_cb-client\dacn1_ha_cb-client\RemoteAdministrationClient\RemoteClient\bin\Debug\System.Data.SQLite.dll
+D:\UNIVERSITY\DISCRETE_MATHESMATICS\Programming\PTTKGT\dacn1_ha_cb-client\dacn1_ha_cb-client\RemoteAdministrationClient\RemoteClient\bin\Debug\System.Data.SQLite.EF6.dll
+D:\UNIVERSITY\DISCRETE_MATHESMATICS\Programming\PTTKGT\dacn1_ha_cb-client\dacn1_ha_cb-client\RemoteAdministrationClient\RemoteClient\bin\Debug\System.Data.SQLite.Linq.dll
+D:\UNIVERSITY\DISCRETE_MATHESMATICS\Programming\PTTKGT\dacn1_ha_cb-client\dacn1_ha_cb-client\RemoteAdministrationClient\RemoteClient\bin\Debug\AForge.xml
+D:\UNIVERSITY\DISCRETE_MATHESMATICS\Programming\PTTKGT\dacn1_ha_cb-client\dacn1_ha_cb-client\RemoteAdministrationClient\RemoteClient\bin\Debug\AForge.Video.xml
+D:\UNIVERSITY\DISCRETE_MATHESMATICS\Programming\PTTKGT\dacn1_ha_cb-client\dacn1_ha_cb-client\RemoteAdministrationClient\RemoteClient\bin\Debug\AForge.Video.DirectShow.xml
+D:\UNIVERSITY\DISCRETE_MATHESMATICS\Programming\PTTKGT\dacn1_ha_cb-client\dacn1_ha_cb-client\RemoteAdministrationClient\RemoteClient\bin\Debug\EntityFramework.xml
+D:\UNIVERSITY\DISCRETE_MATHESMATICS\Programming\PTTKGT\dacn1_ha_cb-client\dacn1_ha_cb-client\RemoteAdministrationClient\RemoteClient\bin\Debug\EntityFramework.SqlServer.xml
+D:\UNIVERSITY\DISCRETE_MATHESMATICS\Programming\PTTKGT\dacn1_ha_cb-client\dacn1_ha_cb-client\RemoteAdministrationClient\RemoteClient\bin\Debug\NAudio.xml
+D:\UNIVERSITY\DISCRETE_MATHESMATICS\Programming\PTTKGT\dacn1_ha_cb-client\dacn1_ha_cb-client\RemoteAdministrationClient\RemoteClient\bin\Debug\System.Data.SQLite.xml
+D:\UNIVERSITY\DISCRETE_MATHESMATICS\Programming\PTTKGT\dacn1_ha_cb-client\dacn1_ha_cb-client\RemoteAdministrationClient\RemoteClient\obj\Debug\RemoteClient.csproj.AssemblyReference.cache
+D:\UNIVERSITY\DISCRETE_MATHESMATICS\Programming\PTTKGT\dacn1_ha_cb-client\dacn1_ha_cb-client\RemoteAdministrationClient\RemoteClient\obj\Debug\RemoteClient.csproj.GenerateResource.cache
+D:\UNIVERSITY\DISCRETE_MATHESMATICS\Programming\PTTKGT\dacn1_ha_cb-client\dacn1_ha_cb-client\RemoteAdministrationClient\RemoteClient\obj\Debug\RemoteClient.csproj.CoreCompileInputs.cache
+D:\UNIVERSITY\DISCRETE_MATHESMATICS\Programming\PTTKGT\dacn1_ha_cb-client\dacn1_ha_cb-client\RemoteAdministrationClient\RemoteClient\obj\Debug\RemoteCl.989A280E.Up2Date
+D:\UNIVERSITY\DISCRETE_MATHESMATICS\Programming\PTTKGT\dacn1_ha_cb-client\dacn1_ha_cb-client\RemoteAdministrationClient\RemoteClient\obj\Debug\Internet.exe
+D:\UNIVERSITY\DISCRETE_MATHESMATICS\Programming\PTTKGT\dacn1_ha_cb-client\dacn1_ha_cb-client\RemoteAdministrationClient\RemoteClient\obj\Debug\Internet.pdb
+D:\UNIVERSITY\DISCRETE_MATHESMATICS\Programming\PTTKGT\dacn1_ha_cb-client\dacn1_ha_cb-client\RemoteAdministrationClient\RemoteClient\obj\Debug\RemoteClient.Forms.ChatForm.resources
