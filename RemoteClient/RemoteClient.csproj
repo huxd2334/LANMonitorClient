@@ -100,34 +100,15 @@
     <Reference Include="WindowsBase" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Browsers\CredentialModel.cs" />
-    <Compile Include="Browsers\IPassReader.cs" />
-    <Compile Include="Browsers\UrlOpener.cs" />
     <Compile Include="Camera\Webcam.cs" />
     <Compile Include="Core\ActiveWindowTracker.cs" />
-    <Compile Include="Core\ActivityHook.cs" />
     <Compile Include="Core\ByteArrayBuilder.cs" />
     <Compile Include="Core\ConsentManager.cs" />
     <Compile Include="Core\DeserializationBinder.cs" />
-    <Compile Include="Core\DeviceNotification.cs" />
     <Compile Include="Core\Utility.cs" />
-    <Compile Include="Forms\ChatForm.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="Forms\ChatForm.Designer.cs">
-      <DependentUpon>ChatForm.cs</DependentUpon>
-    </Compile>
-    <Compile Include="Forms\ClipHook.cs">
-      <SubType>Component</SubType>
-    </Compile>
     <Compile Include="Core\DataObject.cs" />
-    <Compile Include="Core\ExecuteCmd.cs" />
-    <Compile Include="Browsers\Firefox.cs" />
     <Compile Include="Core\FirstRun.cs" />
     <Compile Include="Core\FoundInfoEventArgs.cs" />
-    <Compile Include="Browsers\Chrome.cs" />
-    <Compile Include="Browsers\InternetExplorer.cs" />
-    <Compile Include="Core\ModifyRegistry.cs" />
     <Compile Include="Core\Mouse.cs" />
     <Compile Include="Forms\Notification.cs">
       <SubType>Form</SubType>
@@ -147,7 +128,6 @@
     <Compile Include="Core\Searcher.cs" />
     <Compile Include="Core\SearcherParams.cs" />
     <Compile Include="Core\ThreadEndedEventArgs.cs" />
-    <Compile Include="Core\UAC.cs" />
     <None Include="app.manifest">
       <SubType>Designer</SubType>
     </None>
@@ -155,11 +135,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
-  </ItemGroup>
-  <ItemGroup>
-    <EmbeddedResource Include="Forms\ChatForm.resx">
-      <DependentUpon>ChatForm.cs</DependentUpon>
-    </EmbeddedResource>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="..\packages\System.Data.SQLite.Core.1.0.102.0\build\net45\System.Data.SQLite.Core.targets" Condition="Exists('..\packages\System.Data.SQLite.Core.1.0.102.0\build\net45\System.Data.SQLite.Core.targets')" />
