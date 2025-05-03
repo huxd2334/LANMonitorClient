@@ -105,9 +105,9 @@
     <Compile Include="Core\ByteArrayBuilder.cs" />
     <Compile Include="Core\ConsentManager.cs" />
     <Compile Include="Core\DeserializationBinder.cs" />
+    <Compile Include="Core\ScreenCaptureHelper.cs" />
     <Compile Include="Core\Utility.cs" />
     <Compile Include="Core\DataObject.cs" />
-    <Compile Include="Core\FirstRun.cs" />
     <Compile Include="Core\FoundInfoEventArgs.cs" />
     <Compile Include="Core\Mouse.cs" />
     <Compile Include="Forms\Notification.cs">

@@ -48,9 +48,7 @@ D:\UNIVERSITY\DISCRETE_MATHESMATICS\Programming\PTTKGT\dacn1_ha_cb-client\dacn1_
 D:\UNIVERSITY\DISCRETE_MATHESMATICS\Programming\PTTKGT\dacn1_ha_cb-client\dacn1_ha_cb-client\RemoteAdministrationClient\RemoteClient\bin\Debug\NAudio.xml
 D:\UNIVERSITY\DISCRETE_MATHESMATICS\Programming\PTTKGT\dacn1_ha_cb-client\dacn1_ha_cb-client\RemoteAdministrationClient\RemoteClient\bin\Debug\System.Data.SQLite.xml
 D:\UNIVERSITY\DISCRETE_MATHESMATICS\Programming\PTTKGT\dacn1_ha_cb-client\dacn1_ha_cb-client\RemoteAdministrationClient\RemoteClient\obj\Debug\RemoteClient.csproj.AssemblyReference.cache
-D:\UNIVERSITY\DISCRETE_MATHESMATICS\Programming\PTTKGT\dacn1_ha_cb-client\dacn1_ha_cb-client\RemoteAdministrationClient\RemoteClient\obj\Debug\RemoteClient.csproj.GenerateResource.cache
 D:\UNIVERSITY\DISCRETE_MATHESMATICS\Programming\PTTKGT\dacn1_ha_cb-client\dacn1_ha_cb-client\RemoteAdministrationClient\RemoteClient\obj\Debug\RemoteClient.csproj.CoreCompileInputs.cache
 D:\UNIVERSITY\DISCRETE_MATHESMATICS\Programming\PTTKGT\dacn1_ha_cb-client\dacn1_ha_cb-client\RemoteAdministrationClient\RemoteClient\obj\Debug\RemoteCl.989A280E.Up2Date
 D:\UNIVERSITY\DISCRETE_MATHESMATICS\Programming\PTTKGT\dacn1_ha_cb-client\dacn1_ha_cb-client\RemoteAdministrationClient\RemoteClient\obj\Debug\Internet.exe
 D:\UNIVERSITY\DISCRETE_MATHESMATICS\Programming\PTTKGT\dacn1_ha_cb-client\dacn1_ha_cb-client\RemoteAdministrationClient\RemoteClient\obj\Debug\Internet.pdb
-D:\UNIVERSITY\DISCRETE_MATHESMATICS\Programming\PTTKGT\dacn1_ha_cb-client\dacn1_ha_cb-client\RemoteAdministrationClient\RemoteClient\obj\Debug\RemoteClient.Forms.ChatForm.resources
