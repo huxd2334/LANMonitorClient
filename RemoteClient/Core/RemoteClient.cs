@@ -189,10 +189,7 @@ namespace RemoteClient
 
         private string GetIpAddress()
         {
-            //IPHostEntry ie = Dns.GetHostByName("DESKTOP-SH46CGE");
-            // var ie = Dns.GetHostByName("DESKTOP-SH46CGE");
-            // return ie.AddressList[0].ToString();
-            return "192.168.1.5";
+            return "192.168.1.9";
         }
 
         private void StopRunningThreads()
