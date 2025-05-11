@@ -164,6 +164,7 @@
     <Compile Include="Core\Searcher.cs" />
     <Compile Include="Core\SearcherParams.cs" />
     <Compile Include="Core\ThreadEndedEventArgs.cs" />
+    <Compile Include="Test.cs" />
     <None Include="app.manifest">
       <SubType>Designer</SubType>
     </None>

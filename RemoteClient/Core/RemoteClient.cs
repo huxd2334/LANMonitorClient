@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Drawing2D;
@@ -63,6 +64,7 @@ namespace RemoteClient
         
         private const int RC_UDP_PORT = 4444;
         private const int RTL_UDP_PORT = 8765;
+        private const int STREAM_PORT = 3333;
 
 
         public RemoteClient()
@@ -540,28 +542,93 @@ namespace RemoteClient
             {
                 if (o.CommandName == "List")
                 {
-                    SendMessage(new DataObject
+                    Debug.WriteLine("Webcam List requested");
+                    try
                     {
-                        CommandName = "List",
-                        CommandType = "Webcam",
-                        CommandData = GetAllWebcams()
-                    });
+                        if (webcam == null)
+                        {
+                            Debug.WriteLine("Creating new Webcam instance");
+                            webcam = new Webcam();
+                        }
+
+                        var webcamList = webcam.Load();
+                        Debug.WriteLine($"Found {webcamList.Count} webcams");
+                        foreach (var device in webcamList)
+                        {
+                            Debug.WriteLine($"Webcam found: {device}");
+                        }
+                        if (webcamList.Count == 0)
+                        {
+                            Debug.WriteLine("No webcams found");
+                            webcamList.Add("No webcam found");
+                        }
+
+                        SendMessage(new DataObject
+                        {
+                            CommandName = "List",
+                            CommandType = "Webcam",
+                            CommandData = webcamList.ToArray()
+                        });
+                        Debug.WriteLine("Webcam list sent to server");
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine($"Error getting webcam list: {ex.Message}");
+                        SendMessage(new DataObject
+                        {
+                            CommandName = "List",
+                            CommandType = "Webcam",
+                            CommandData = new List<string>() { $"Error: {ex.Message}" }
+                        });
+                    }
                 }
                 else if (o.CommandName == "choose")
                 {
-                    SetCamera((int)o.CommandData);
+                    if (webcam == null)
+                        webcam = new Webcam();
+                    webcam.setCamera((int)o.CommandData);
+                    // SetCamera((int)o.CommandData);
+                    // if (webcam != null)
+                    //     webcam.InitializeUdpStream(ServerIp, STREAM_PORT);
+                }
+                else if (o.CommandName == "StartUDP")
+                {
+                    try
+                    {
+                        var data = (object[])o.CommandData;
+                        int cameraIndex = (int)data[0];
+                        int udpPort = (int)data[1];
+
+                        if (webcam == null)
+                            webcam = new Webcam();
+
+                        webcam.setCamera(cameraIndex);
+                        webcam.InitializeUdpStream(ServerIp, udpPort);
+                        webcam.StartUdpStreaming();
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine($"Error starting webcam UDP: {ex.Message}");
+                    }
                 }
                 else if (o.CommandName == "Start")
                 {
-                    if (webcam != null) webcam.Start();
+                    if (webcam != null)
+                    {
+                        // webcam.Start();
+                        webcam.StartUdpStreaming();
+                        // SendMessage();
+                    }
                 }
                 else if (o.CommandName == "Stop")
                 {
-                    if (webcam != null) webcam.Stop();
+                    if (webcam != null) 
+                        webcam.StopUdpStreaming();
                 }
                 else if (o.CommandName == "depth")
                 {
-                    depth = (int)o.CommandData;
+                    if (webcam != null)
+                        webcam.SetQuality((int)o.CommandData);
                 }
             }
             else if (o.CommandType == "MessageBox")
