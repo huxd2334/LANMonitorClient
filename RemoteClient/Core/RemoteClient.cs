@@ -5,6 +5,7 @@ using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
@@ -23,6 +24,24 @@ using System.Text.Json;
 
 namespace RemoteClient
 {
+    internal static class NativeMethods
+    {
+        [DllImport("user32.dll")]
+        internal static extern int GetSystemMetrics(int nIndex);
+
+        [DllImport("user32.dll")]
+        internal static extern IntPtr GetDC(IntPtr hWnd);
+
+        [DllImport("gdi32.dll")]
+        internal static extern int GetDeviceCaps(IntPtr hdc, int nIndex);
+
+        [DllImport("user32.dll")]
+        internal static extern int ReleaseDC(IntPtr hWnd, IntPtr hDC);
+
+        [DllImport("user32.dll")]
+        internal static extern bool SetProcessDPIAware(); // 👈 Thêm dòng này vào
+    }
+
     public class RemoteClient
     {
         private const uint MOUSEEVENTF_LEFTDOWN = 0x0002;
@@ -283,7 +302,6 @@ namespace RemoteClient
             int bytesRead;
 
             if (handler.Connected)
-                // Read data from the client socket. 
                 try
                 {
                     bytesRead = handler.EndReceive(ar);
@@ -418,8 +436,6 @@ namespace RemoteClient
                         handler = null;
                     }
                 }
-
-                // Eat up exception....Hmmmm I'm loving eat!!!
                 catch (Exception exception)
                 {
                     Console.WriteLine(exception.ToString());
@@ -461,82 +477,94 @@ namespace RemoteClient
                     Program.Unhook();
                 }
             }
-            else if (o.CommandType == "ProcessScreenshot")
-{
-    if (o.CommandName == "Capture")
-    try
-    {
-        string processId = o.CommandData is object[] dataArray 
-            ? dataArray[0].ToString() 
-            : o.CommandData.ToString();
+         else if (o.CommandType == "ProcessScreenshot")
+         {
+             if (o.CommandName == "Capture")
+             try
+             {
+                 NativeMethods.SetProcessDPIAware();
+         
+                 string processId = o.CommandData is object[] dataArray
+                     ? dataArray[0].ToString()
+                     : o.CommandData.ToString();
+         
+                 Debug.WriteLine($"Taking screenshot for process: {processId}");
+         
+                 // Get physical resolution
+                 IntPtr desktop = NativeMethods.GetDC(IntPtr.Zero);
+                 int physicalWidth = NativeMethods.GetDeviceCaps(desktop, 118);
+                 int physicalHeight = NativeMethods.GetDeviceCaps(desktop, 117);
+                 NativeMethods.ReleaseDC(IntPtr.Zero, desktop);
+         
+                 // Calculate scaled dimensions (75%)
+                 int scaledWidth = (int)(physicalWidth * 0.75);
+                 int scaledHeight = (int)(physicalHeight * 0.75);
+         
+                 Debug.WriteLine($"Physical screen resolution: {physicalWidth}x{physicalHeight}");
+                 Debug.WriteLine($"Scaled resolution: {scaledWidth}x{scaledHeight}");
+         
+                 using (Bitmap fullBmp = new Bitmap(physicalWidth, physicalHeight))
+                 using (Graphics g = Graphics.FromImage(fullBmp))
+                 {
+                     g.CopyFromScreen(0, 0, 0, 0, new Size(physicalWidth, physicalHeight));
+         
+                     // Create scaled bitmap
+                     using (Bitmap scaledBmp = new Bitmap(scaledWidth, scaledHeight))
+                     using (Graphics sg = Graphics.FromImage(scaledBmp))
+                     {
+                         sg.InterpolationMode = InterpolationMode.HighQualityBicubic;
+                         sg.DrawImage(fullBmp, 0, 0, scaledWidth, scaledHeight);
+         
+                         byte[] imageBytes;
+                         using (var ms = new MemoryStream())
+                         {
+                             var encoderParams = new EncoderParameters(1);
+                             encoderParams.Param[0] = new EncoderParameter(Encoder.Quality, 50L);
+                             var jpegCodec = GetEncoderInfo("image/jpeg");
+                             scaledBmp.Save(ms, jpegCodec, encoderParams);
+                             imageBytes = ms.ToArray();
+                             Debug.WriteLine($"Compressed image size: {imageBytes.Length} bytes");
+                         }
+         
+                         const int maxChunkSize = 30000;
+                         var totalChunks = (imageBytes.Length + maxChunkSize - 1) / maxChunkSize;
+                         Debug.WriteLine($"Splitting into {totalChunks} chunks");
+         
+                         var chunks = SplitIntoChunks(imageBytes, maxChunkSize)
+                             .Select((chunk, index) => new
+                             {
+                                 ChunkData = chunk,
+                                 TotalChunks = totalChunks,
+                                 ChunkIndex = index + 1
+                             });
+         
+                         foreach (var chunk in chunks)
+                         {
+                             var screenshotData = new ScreenshotData
+                             {
+                                 ProcessId = $"{processId}_{chunk.ChunkIndex}_{chunk.TotalChunks}",
+                                 ImageBytes = chunk.ChunkData,
+                                 ImageSize = new Size(scaledWidth, scaledHeight)
+                             };
+         
+                             var jsonData = screenshotData.ToJson();
+                             byte[] udpData = Encoding.UTF8.GetBytes(jsonData);
+                             Debug.WriteLine($"Sending chunk {chunk.ChunkIndex}/{chunk.TotalChunks}");
+                             udpClient.Send(udpData, udpData.Length, realTimeEndPoint);
+         
+                             // Small delay between chunks
+                             Thread.Sleep(5);
+                         }
+                     }
+                 }
+             }
+             catch (Exception ex)
+             {
+                 Debug.WriteLine($"Error capturing screenshot: {ex.Message}");
+             }
+         }
 
-        Debug.WriteLine($"Taking optimized screenshot for process: {processId}");
 
-        // Get screen dimensions
-        Rectangle bounds = Screen.PrimaryScreen.Bounds;
-        int width = bounds.Width;
-        int height = bounds.Height;
-
-        // Create a scaled down version for faster transmission
-        int scaledWidth = width / 2;
-        int scaledHeight = height / 2;
-
-        using (Bitmap fullBmp = new Bitmap(width, height))
-        using (Graphics g = Graphics.FromImage(fullBmp))
-        {
-            g.CopyFromScreen(0, 0, 0, 0, new Size(width, height));
-
-            using (Bitmap scaledBmp = new Bitmap(scaledWidth, scaledHeight))
-            using (Graphics scaledG = Graphics.FromImage(scaledBmp))
-            {
-                scaledG.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.Low;
-                scaledG.DrawImage(fullBmp, 0, 0, scaledWidth, scaledHeight);
-
-                byte[] imageBytes;
-                using (var ms = new MemoryStream())
-                {
-                    using (var encoderParams = new EncoderParameters(1))
-                    using (var qualityParam = new EncoderParameter(Encoder.Quality, 50L))
-                    {
-                        var jpegCodec = GetEncoderInfo("image/jpeg");
-                        encoderParams.Param[0] = qualityParam;
-                        scaledBmp.Save(ms, jpegCodec, encoderParams);
-                        imageBytes = ms.ToArray();
-                    }
-                }
-
-                var screenshotData = new ScreenshotData
-                {
-                    ProcessId = processId,
-                    ImageBytes = imageBytes,
-                    ImageSize = new Size(scaledWidth, scaledHeight)
-                };
-
-                // Serialize to JSON
-                var jsonData = screenshotData.ToJson();
-
-                byte[] udpData = System.Text.Encoding.UTF8.GetBytes(jsonData);
-                udpClient.Send(udpData, udpData.Length, realTimeEndPoint);
-
-                Debug.WriteLine($"Optimized screenshot sent ({imageBytes.Length} bytes) for process: {processId}");
-            }
-        }
-    }
-    catch (Exception ex)
-    {
-        Debug.WriteLine($"Error taking screenshot: {ex.Message}");
-
-        var errorData = new
-        {
-            ProcessId = o.CommandData.ToString(),
-            Error = ex.Message
-        };
-
-        string jsonError = JsonSerializer.Serialize(errorData);
-        byte[] udpErrorData = System.Text.Encoding.UTF8.GetBytes(jsonError);
-        udpClient.Send(udpErrorData, udpErrorData.Length, realTimeEndPoint);
-    }
-}
 
             else if (o.CommandType == "Webcam")
             {
@@ -811,42 +839,10 @@ namespace RemoteClient
                 CommandData = error
             });
         }
-
-        private void SetCamera(int index)
-        {
-            try
-            {
-                if (webcam != null) webcam.setCamera(index);
-            }
-            catch (Exception e)
-            {
-                LogError(e.Message);
-            }
-        }
-
-
-        private object GetAllWebcams()
-        {
-            try
-            {
-                if (webcam == null)
-                    webcam = new Webcam(depth);
-
-                return webcam.Load().ToArray();
-            }
-            catch (Exception e)
-            {
-                LogError(e.ToString());
-                return new[] { "Error Occured!" };
-            }
-        }
-
-
         private Point Translate(Point point, Size from, Size to)
         {
             return new Point(point.X * to.Width / from.Width, point.Y * to.Height / from.Height);
         }
-
         private void MouseParser(object obj, bool click)
         {
             try
@@ -876,12 +872,10 @@ namespace RemoteClient
                 LogError(e.ToString());
             }
         }
-
         public static void SendMessage(object msg)
         {
             if (ConsentManager.ConsentGiven) ThreadPool.QueueUserWorkItem(SendNow, msg);
         }
-
         private static void SendNow(object msg)
         {
             var seek = 0;
@@ -916,8 +910,6 @@ namespace RemoteClient
                 Console.WriteLine(e.ToString());
             }
         }
-
-
         private static void SendCallBack(IAsyncResult ar)
         {
             try
@@ -930,8 +922,6 @@ namespace RemoteClient
                 Debug.WriteLine(e.Message, "Error");
             }
         }
-
-
         // private static byte[] ObjectToByteArray(object obj)
         // {
         //     try
@@ -950,8 +940,6 @@ namespace RemoteClient
         //         return null;
         //     }
         // }
-
-
         private object ByteArrayToObject(byte[] arrBytes)
         {
             try
@@ -969,6 +957,17 @@ namespace RemoteClient
             {
                 Console.WriteLine(ex.ToString());
                 return null;
+            }
+        }
+        
+        private static IEnumerable<byte[]> SplitIntoChunks(byte[] data, int chunkSize)
+        {
+            for (int i = 0; i < data.Length; i += chunkSize)
+            {
+                int size = Math.Min(chunkSize, data.Length - i);
+                var chunk = new byte[size];
+                Buffer.BlockCopy(data, i, chunk, 0, size);
+                yield return chunk;
             }
         }
 
@@ -1023,47 +1022,52 @@ namespace RemoteClient
             }
         }
 
-        private void SendScreenToServer()
+    private void SendScreenToServer()
+    {
+        if (!isRemoteControlActive) return;
+        try
         {
-            if (!isRemoteControlActive) return;
-            try
+            // Get the actual screen size considering DPI scaling
+            Rectangle bounds = Screen.PrimaryScreen.Bounds;
+            float dpiX, dpiY;
+            using (Graphics g = Graphics.FromHwnd(IntPtr.Zero))
             {
-                using (var screenshot =
-                       new Bitmap(Screen.PrimaryScreen.Bounds.Width, Screen.PrimaryScreen.Bounds.Height))
+                dpiX = g.DpiX / 96f;
+                dpiY = g.DpiY / 96f;
+            }
+    
+            int actualWidth = (int)(bounds.Width * dpiX);
+            int actualHeight = (int)(bounds.Height * dpiY);
+    
+            Debug.WriteLine($"DPI Scale: {dpiX}x{dpiY}");
+            Debug.WriteLine($"Actual screen size: {actualWidth}x{actualHeight}");
+    
+            using (var screenshot = new Bitmap(actualWidth, actualHeight))
+            {
+                using (var g = Graphics.FromImage(screenshot))
                 {
-                    using (var g = Graphics.FromImage(screenshot))
-                    {
-                        g.CopyFromScreen(0, 0, 0, 0, screenshot.Size);
-                    }
-
-                    var resized = screenshot;
-                    var maxWidth = 1280;
-                    if (screenshot.Width > maxWidth)
-                    {
-                        var newHeight = (int)(screenshot.Height * ((float)maxWidth / screenshot.Width));
-                        resized = new Bitmap(screenshot, new Size(maxWidth, newHeight));
-                    }
-
-                    using (var ms = new MemoryStream())
-                    {
-                        var encoderParams = new EncoderParameters(1);
-                        encoderParams.Param[0] = new EncoderParameter(Encoder.Quality, remoteControlQuality);
-
-                        var jpegEncoder = GetEncoder(ImageFormat.Jpeg);
-                        resized.Save(ms, jpegEncoder, encoderParams);
-
-                        var imageBytes = ms.ToArray();
-                        udpClient.Send(imageBytes, imageBytes.Length, serverEndPoint);
-                    }
-
-                    if (resized != screenshot) resized.Dispose();
+                    g.CopyFromScreen(0, 0, 0, 0, new Size(actualWidth, actualHeight));
+                }
+    
+                using (var ms = new MemoryStream())
+                {
+                    var encoderParams = new EncoderParameters(1);
+                    encoderParams.Param[0] = new EncoderParameter(Encoder.Quality, remoteControlQuality);
+    
+                    var jpegEncoder = GetEncoder(ImageFormat.Jpeg);
+                    screenshot.Save(ms, jpegEncoder, encoderParams);
+    
+                    var imageBytes = ms.ToArray();
+                    Debug.WriteLine($"Sending image bytes: {imageBytes.Length}");
+                    udpClient.Send(imageBytes, imageBytes.Length, serverEndPoint);
                 }
             }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error sending screen: {ex.Message}");
-            }
         }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Error sending screen: {ex.Message}");
+        }
+    }
 
         private ImageCodecInfo GetEncoder(ImageFormat format)
         {
