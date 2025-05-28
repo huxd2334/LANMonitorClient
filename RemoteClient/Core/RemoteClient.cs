@@ -48,7 +48,7 @@ namespace RemoteClient
         private const uint MOUSEEVENTF_LEFTUP = 0x0004;
         private const uint MOUSEEVENTF_RIGHTDOWN = 0x0008;
         private const uint MOUSEEVENTF_RIGHTUP = 0x0010;
-        private const string ServerIp = "192.168.1.11";
+        private const string ServerIp = "192.168.54.38";
         private static NetworkStream ns;
         private static TcpClient server;
         private readonly bool distruct = false;
@@ -1022,52 +1022,94 @@ namespace RemoteClient
             }
         }
 
-    private void SendScreenToServer()
+private void SendScreenToServer()
+{
+    if (!isRemoteControlActive) return;
+
+    try
     {
-        if (!isRemoteControlActive) return;
-        try
+        // Check if the server is reachable
+        if (!IsServerReachable(serverEndPoint.Address.ToString()))
         {
-            // Get the actual screen size considering DPI scaling
-            Rectangle bounds = Screen.PrimaryScreen.Bounds;
-            float dpiX, dpiY;
-            using (Graphics g = Graphics.FromHwnd(IntPtr.Zero))
-            {
-                dpiX = g.DpiX / 96f;
-                dpiY = g.DpiY / 96f;
-            }
-    
-            int actualWidth = (int)(bounds.Width * dpiX);
-            int actualHeight = (int)(bounds.Height * dpiY);
-    
-            Debug.WriteLine($"DPI Scale: {dpiX}x{dpiY}");
-            Debug.WriteLine($"Actual screen size: {actualWidth}x{actualHeight}");
-    
-            using (var screenshot = new Bitmap(actualWidth, actualHeight))
-            {
-                using (var g = Graphics.FromImage(screenshot))
-                {
-                    g.CopyFromScreen(0, 0, 0, 0, new Size(actualWidth, actualHeight));
-                }
-    
-                using (var ms = new MemoryStream())
-                {
-                    var encoderParams = new EncoderParameters(1);
-                    encoderParams.Param[0] = new EncoderParameter(Encoder.Quality, remoteControlQuality);
-    
-                    var jpegEncoder = GetEncoder(ImageFormat.Jpeg);
-                    screenshot.Save(ms, jpegEncoder, encoderParams);
-    
-                    var imageBytes = ms.ToArray();
-                    Debug.WriteLine($"Sending image bytes: {imageBytes.Length}");
-                    udpClient.Send(imageBytes, imageBytes.Length, serverEndPoint);
-                }
-            }
+            Debug.WriteLine("Server is not reachable. Stopping chunk transmission.");
+            return;
         }
-        catch (Exception ex)
+
+        Rectangle bounds = Screen.PrimaryScreen.Bounds;
+        float dpiX, dpiY;
+        using (Graphics g = Graphics.FromHwnd(IntPtr.Zero))
         {
-            Debug.WriteLine($"Error sending screen: {ex.Message}");
+            dpiX = g.DpiX / 96f;
+            dpiY = g.DpiY / 96f;
+        }
+
+        int actualWidth = (int)(bounds.Width * dpiX);
+        int actualHeight = (int)(bounds.Height * dpiY);
+
+        using (var screenshot = new Bitmap(actualWidth, actualHeight))
+        {
+            using (var g = Graphics.FromImage(screenshot))
+            {
+                g.CopyFromScreen(0, 0, 0, 0, new Size(actualWidth, actualHeight));
+            }
+
+            using (var ms = new MemoryStream())
+            {
+                var encoderParams = new EncoderParameters(1);
+                encoderParams.Param[0] = new EncoderParameter(Encoder.Quality, remoteControlQuality);
+
+                var jpegEncoder = GetEncoder(ImageFormat.Jpeg);
+                screenshot.Save(ms, jpegEncoder, encoderParams);
+
+                var imageBytes = ms.ToArray();
+                const int maxChunkSize = 30000;
+                var totalChunks = (imageBytes.Length + maxChunkSize - 1) / maxChunkSize;
+
+                for (int i = 0; i < totalChunks; i++)
+                {
+                    int chunkSize = Math.Min(maxChunkSize, imageBytes.Length - i * maxChunkSize);
+                    byte[] chunk = new byte[chunkSize];
+                    Buffer.BlockCopy(imageBytes, i * maxChunkSize, chunk, 0, chunkSize);
+
+                    var chunkData = new
+                    {
+                        ChunkIndex = i + 1,
+                        TotalChunks = totalChunks,
+                        Data = chunk
+                    };
+
+                    string jsonData = JsonSerializer.Serialize(chunkData);
+                    Debug.WriteLine($"Sending chunk {i + 1}/{totalChunks}: {jsonData}");
+                    byte[] udpData = Encoding.UTF8.GetBytes(jsonData);
+
+                    udpClient.Send(udpData, udpData.Length, serverEndPoint);
+                    Thread.Sleep(5);
+                }
+            }
         }
     }
+    catch (Exception ex)
+    {
+        Debug.WriteLine($"Error sending screen: {ex.Message}");
+    }
+}
+
+private bool IsServerReachable(string serverIp)
+{
+    try
+    {
+        using (var ping = new System.Net.NetworkInformation.Ping())
+        {
+            var reply = ping.Send(serverIp, 1000); // 1-second timeout
+            return reply != null && reply.Status == System.Net.NetworkInformation.IPStatus.Success;
+        }
+    }
+    catch (Exception ex)
+    {
+        Debug.WriteLine($"Error checking server reachability: {ex.Message}");
+        return false;
+    }
+}
 
         private ImageCodecInfo GetEncoder(ImageFormat format)
         {
