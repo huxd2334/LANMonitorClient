@@ -48,7 +48,7 @@ namespace RemoteClient
         private const uint MOUSEEVENTF_LEFTUP = 0x0004;
         private const uint MOUSEEVENTF_RIGHTDOWN = 0x0008;
         private const uint MOUSEEVENTF_RIGHTUP = 0x0010;
-        private const string ServerIp = "192.168.1.11";
+        private const string ServerIp = "192.168.231.128";
         private static NetworkStream ns;
         private static TcpClient server;
         private readonly bool distruct = false;
