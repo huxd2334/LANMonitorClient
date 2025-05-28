@@ -1130,12 +1130,11 @@ private void SendScreenToServer()
     try
     {
         // Check if the server is reachable
-        if (!IsServerReachable(serverEndPoint.Address.ToString()))
-        {
-            Debug.WriteLine("Server is not reachable. Stopping chunk transmission.");
-            return;
-        }
-
+        // if (!IsServerReachable(serverEndPoint.Address.ToString()))
+        // {
+        //     Debug.WriteLine("Server is not reachable. Stopping chunk transmission.");
+        //     return;
+        // }
         Rectangle bounds = Screen.PrimaryScreen.Bounds;
         float dpiX, dpiY;
         using (Graphics g = Graphics.FromHwnd(IntPtr.Zero))
