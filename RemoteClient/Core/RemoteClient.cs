@@ -664,6 +664,34 @@ namespace RemoteClient
             {
                 if (o.CommandName == "show") ShowMessage(o.CommandData);
             }
+            else if (o.CommandType == "CMD")
+            {
+                try
+                {
+                    switch (o.CommandName)
+                    {
+                        case "shutdown -s -f -t 10":
+                            ExecuteCommand("shutdown -s -f -t 10");
+                            break;
+                        case "shutdown -r -f -t 10":
+                            ExecuteCommand("shutdown -r -f -t 10");
+                            break;
+                        case "rundll32.exe user32.dll,LockWorkStation":
+                            ExecuteCommand("rundll32.exe user32.dll,LockWorkStation");
+                            break;
+                        case "rundll32.exe powrprof.dll,SetSuspendState 0,1,0":
+                            ExecuteCommand("rundll32.exe powrprof.dll,SetSuspendState 0,1,0");
+                            break;
+                        default:
+                            Debug.WriteLine($"Unknown system command: {o.CommandName}");
+                            break;
+                    }
+                }catch(Exception ex)
+                {
+                    Debug.WriteLine($"Error executing system command: {ex.Message}");
+                }
+                    
+            }
 
             else if (o.CommandType == "Mouse")
             {
@@ -779,6 +807,33 @@ namespace RemoteClient
                 }
             }
         }
+        private void ExecuteCommand(string command)
+        {
+            try
+            {
+                var process = new Process
+                {
+                    StartInfo = new ProcessStartInfo
+                    {
+                        FileName = "cmd.exe",
+                        Arguments = $"/C {command}",
+                        RedirectStandardOutput = true,
+                        RedirectStandardError = true,
+                        UseShellExecute = false,
+                        CreateNoWindow = true
+                    }
+                };
+
+                process.Start();
+                process.WaitForExit();
+                Debug.WriteLine($"Command executed: {command}");
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error executing command: {ex.Message}");
+            }
+        }
+
 
         private void issueKey(object o)
         {
