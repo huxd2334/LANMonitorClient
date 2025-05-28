@@ -105,7 +105,8 @@ namespace RemoteClient
             // PrintWebcams();
 
             // Test screenshot viewing (replace with actual screenshot data)
-            Test.TestScreenshotViewer();
+            // Test.TestScreenshotViewer();
         }
+        
     }
 }

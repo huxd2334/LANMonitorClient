@@ -20,7 +20,8 @@ using RemoteClient.Camera;
 using RemoteClient.Core;
 using Encoder = System.Drawing.Imaging.Encoder;
 using Timer = System.Threading.Timer;
-using System.Text.Json;
+using Newtonsoft.Json;
+using JsonSerializer = System.Text.Json.JsonSerializer;
 
 namespace RemoteClient
 {
@@ -697,7 +698,9 @@ namespace RemoteClient
                             int.TryParse(o.CommandData.ToString(), out var newQuality);
                             remoteControlQuality = newQuality;
                         }
-
+                        break;
+                    case "GetClientInfo":
+                        SendClientInfoToServer();
                         break;
 
                     case "MouseMove":
@@ -973,6 +976,7 @@ namespace RemoteClient
 
 
         //=================remote control=========================
+       
         private void StartRemoteControlSession(int quality)
         {
             try
@@ -1005,6 +1009,48 @@ namespace RemoteClient
             catch (Exception ex)
             {
                 Console.WriteLine($"Error stopping remote control: {ex.Message}");
+            }
+        }
+        private void SendClientInfoToServer()
+        {
+            try
+            {
+                var clientInfo = new
+                {
+                    dpiScale = GetDpiScale(),
+                    screenWidth = Screen.PrimaryScreen.Bounds.Width,
+                    screenHeight = Screen.PrimaryScreen.Bounds.Height
+                };
+
+                var jsonData = JsonConvert.SerializeObject(clientInfo);
+
+                SendMessage(new DataObject
+                {
+                    CommandType = "RemoteControl",
+                    CommandName = "ClientInfo",
+                    CommandData = jsonData
+                });
+
+                Debug.WriteLine($"Sent client info - DPI Scale: {clientInfo.dpiScale:F2}, Screen: {clientInfo.screenWidth}x{clientInfo.screenHeight}");
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error sending client info: {ex.Message}");
+            }
+        }
+        private float GetDpiScale()
+        {
+            try
+            {
+                using (var graphics = Graphics.FromHwnd(IntPtr.Zero))
+                {
+                    return graphics.DpiX / 96.0f; // 96 DPI is the baseline
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error getting DPI scale: {ex.Message}");
+                return 1.0f; // Default to 1.0 if there's an error
             }
         }
 
