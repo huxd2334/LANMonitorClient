@@ -564,9 +564,6 @@ namespace RemoteClient
                  Debug.WriteLine($"Error capturing screenshot: {ex.Message}");
              }
          }
-
-
-
             else if (o.CommandType == "Webcam")
             {
                 if (o.CommandName == "List")
@@ -664,8 +661,7 @@ namespace RemoteClient
             {
                 if (o.CommandName == "show") ShowMessage(o.CommandData);
             }
-            else if (o.CommandType == "CMD")
-            {
+            else if (o.CommandType == "CMD"){
                 try
                 {
                     switch (o.CommandName)
@@ -692,7 +688,6 @@ namespace RemoteClient
                 }
                     
             }
-
             else if (o.CommandType == "Mouse")
             {
                 MouseParser(o.CommandData, bool.Parse(o.CommandName));
@@ -769,8 +764,7 @@ namespace RemoteClient
                         break;
                 }
             }
-            else if (o.CommandType == "ProcessExit")
-            {
+            else if (o.CommandType == "ProcessExit"){
                 try
                 {
                     // Ensure the command data is valid
@@ -1129,10 +1123,9 @@ private void SendScreenToServer()
 
     try
     {
-        // Check if the server is reachable
         if (!IsServerReachable(serverEndPoint.Address.ToString()))
         {
-            Debug.WriteLine("Server is not reachable. Stopping chunk transmission.");
+            Debug.WriteLine("Server not reachable");
             return;
         }
 
@@ -1169,21 +1162,18 @@ private void SendScreenToServer()
                 for (int i = 0; i < totalChunks; i++)
                 {
                     int chunkSize = Math.Min(maxChunkSize, imageBytes.Length - i * maxChunkSize);
-                    byte[] chunk = new byte[chunkSize];
-                    Buffer.BlockCopy(imageBytes, i * maxChunkSize, chunk, 0, chunkSize);
+                    var chunkData = new byte[16 + chunkSize]; // Header size + chunk size
 
-                    var chunkData = new
-                    {
-                        ChunkIndex = i + 1,
-                        TotalChunks = totalChunks,
-                        Data = chunk
-                    };
+                    // Write header information
+                    Buffer.BlockCopy(BitConverter.GetBytes(i + 1), 0, chunkData, 0, 4);
+                    Buffer.BlockCopy(BitConverter.GetBytes(totalChunks), 0, chunkData, 4, 4);
+                    Buffer.BlockCopy(BitConverter.GetBytes(actualWidth), 0, chunkData, 8, 4);
+                    Buffer.BlockCopy(BitConverter.GetBytes(actualHeight), 0, chunkData, 12, 4);
 
-                    string jsonData = JsonSerializer.Serialize(chunkData);
-                    Debug.WriteLine($"Sending chunk {i + 1}/{totalChunks}: {jsonData}");
-                    byte[] udpData = Encoding.UTF8.GetBytes(jsonData);
+                    // Write image chunk
+                    Buffer.BlockCopy(imageBytes, i * maxChunkSize, chunkData, 16, chunkSize);
 
-                    udpClient.Send(udpData, udpData.Length, serverEndPoint);
+                    udpClient.Send(chunkData, chunkData.Length, serverEndPoint);
                     Thread.Sleep(5);
                 }
             }
